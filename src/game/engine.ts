@@ -62,7 +62,7 @@ export class MissileTower extends Building {
   range: number = 160;
 
   constructor(x: number, y: number) {
-    super(x, y, 1, 1, 200, "MISSILE", 150, false); // 不阻擋敵人
+    super(x, y, 1, 1, 200, "MISSILE", 250, false); // 不阻擋敵人，漲價至 250G
   }
 
   update(dt: number, enemies: Enemy[], projectiles: Projectile[]) {
@@ -414,6 +414,7 @@ export class Enemy {
   speed: number;
   reward: number;
   isDead: boolean = false;
+  type: "NORMAL" | "SCOUT" | "TANK";
   
   frozenTime: number = 0;
   path: {x: number, y: number}[] = [];
@@ -423,7 +424,7 @@ export class Enemy {
   currentAttackCooldown: number = 0;
   enginePhase: number = 0;
 
-  constructor(startX: number, startY: number, hp: number, speed: number, reward: number) {
+  constructor(startX: number, startY: number, hp: number, speed: number, reward: number, type: "NORMAL" | "SCOUT" | "TANK" = "NORMAL") {
     this.x = startX;
     this.y = startY;
     this.px = this.x * TILE_SIZE + TILE_SIZE / 2;
@@ -432,6 +433,7 @@ export class Enemy {
     this.maxHp = hp;
     this.speed = speed;
     this.reward = reward;
+    this.type = type;
     this.enginePhase = Math.random() * Math.PI * 2;
   }
 
@@ -508,6 +510,9 @@ export class Enemy {
        ctx.rotate(angle);
     }
 
+    if (this.type === "SCOUT") ctx.scale(0.7, 0.7);
+    if (this.type === "TANK") ctx.scale(1.4, 1.4);
+
     if (this.frozenTime <= 0) {
       ctx.fillStyle = `rgba(255, 100, 0, ${0.5 + Math.sin(this.enginePhase) * 0.5})`;
       ctx.beginPath();
@@ -519,7 +524,9 @@ export class Enemy {
 
     ctx.shadowColor = "rgba(0,0,0,0.5)";
     ctx.shadowBlur = 5;
-    ctx.fillStyle = this.frozenTime > 0 ? '#0088ff' : '#00ddaa';
+    ctx.fillStyle = this.frozenTime > 0 ? '#0088ff' : 
+                    this.type === "SCOUT" ? '#ffcc00' :
+                    this.type === "TANK" ? '#9900ff' : '#00ddaa';
     ctx.beginPath();
     ctx.moveTo(10, 0);
     ctx.lineTo(-10, 8);

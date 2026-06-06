@@ -59,6 +59,28 @@ export default function GameCanvas() {
   });
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && gameState.current.status === "PLAYING") {
+        e.preventDefault();
+        const mx = mousePos.current.x;
+        const my = mousePos.current.y;
+        if (mx < 0 || my < 0) return;
+
+        const state = gameState.current;
+        const bIndex = state.buildings.findIndex(b => mx >= b.x && mx < b.x + b.w && my >= b.y && my < b.y + b.h);
+        if (bIndex !== -1) {
+          const b = state.buildings[bIndex];
+          b.isDead = true;
+          b.hp = 0;
+          state.gold += b.cost / 2;
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       setHp(Math.floor(gameState.current.hp));
       setGold(Math.floor(gameState.current.gold));
@@ -117,7 +139,25 @@ export default function GameCanvas() {
         const startX = 0;
         const startY = Math.floor(Math.random() * MAP_HEIGHT);
 
-        const enemy = new Enemy(startX, startY, 60 * state.wave, 40 + state.wave * 15, 25);
+        const rand = Math.random();
+        let hp = 60 * state.wave;
+        let speed = 40 + state.wave * 15;
+        let reward = 30;
+        let type: "NORMAL" | "SCOUT" | "TANK" = "NORMAL";
+
+        if (rand < 0.25) {
+          type = "SCOUT";
+          hp = hp * 0.5;
+          speed = speed * 1.5;
+          reward = 15;
+        } else if (rand > 0.85) {
+          type = "TANK";
+          hp = hp * 3;
+          speed = speed * 0.6;
+          reward = 80;
+        }
+
+        const enemy = new Enemy(startX, startY, hp, speed, reward, type);
         const path = findPath(enemy.x, enemy.y, state.buildings);
         if (path) {
           enemy.path = path;
@@ -241,7 +281,7 @@ export default function GameCanvas() {
         const h = mode === "WALL" ? (rotated ? 2 : 1) : 1;
         
         let canBuild = true;
-        let cost = mode === "WALL" ? 10 : mode === "TURRET" ? 50 : mode === "LASER" ? 100 : 150;
+        let cost = mode === "WALL" ? 10 : mode === "TURRET" ? 50 : mode === "LASER" ? 100 : 250;
         
         if (state.gold < cost) canBuild = false;
         
@@ -342,7 +382,7 @@ export default function GameCanvas() {
     const rotated = isRotated;
     const w = mode === "WALL" ? (rotated ? 1 : 2) : 1;
     const h = mode === "WALL" ? (rotated ? 2 : 1) : 1;
-    let cost = mode === "WALL" ? 10 : mode === "TURRET" ? 50 : mode === "LASER" ? 100 : 150;
+    let cost = mode === "WALL" ? 10 : mode === "TURRET" ? 50 : mode === "LASER" ? 100 : 250;
     
     if (state.gold < cost) return;
     if (x < 0 || x + w > MAP_WIDTH || y < 0 || y + h > MAP_HEIGHT) return;
@@ -458,10 +498,10 @@ export default function GameCanvas() {
             onClick={() => setBuildMode("MISSILE")}
             className={`px-6 py-2 border-2 rounded ${buildMode === "MISSILE" ? 'border-orange-400 bg-orange-900 shadow-[0_0_10px_#ff8800]' : 'border-gray-600 bg-black'} font-mono text-xs transition-all`}
           >
-            [4] MISSILE (150G)
+            [4] MISSILE (250G)
           </button>
         </div>
-        <p className="text-center text-[10px] text-gray-400 mt-2">Use Mouse Wheel to switch weapons. Defend the central core!</p>
+        <p className="text-center text-[10px] text-gray-400 mt-2">Mouse Wheel: Switch Weapon | Spacebar: Demolish (50% Refund) | Right Click: Rotate</p>
       </div>
 
       <div className="relative">
